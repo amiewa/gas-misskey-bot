@@ -148,7 +148,7 @@ function processPollPost() {
   postNote(question, { poll: poll });
 }
 
-// F07: リアクション
+// F07: リアクション (キーワード反応型)
 function processReaction() {
   const config = getConfig();
   if (!config.ENABLE_REACTION) return;
@@ -156,39 +156,64 @@ function processReaction() {
   const limitMin = config.REACTION_RECENCY_MIN || 30;
   const thresholdTime = Date.now() - (limitMin * 60 * 1000);
 
-  // 【修正】リアクション対象を「ホームタイムライン(フォロー中)」に限定
-  // 'local' にすると全ユーザーが対象になってしまうため 'home' を指定
-  const timeline = getTimeline('home', 20);
-  
-  // 条件フィルタリング
-  const candidates = timeline.filter(n => {
-    const noteTime = new Date(n.createdAt).getTime();
-    return noteTime > thresholdTime &&      // 直近の投稿か
-           !n.user.isBot &&                 // Botではないか
-           n.userId !== config.OWN_USER_ID && // 自分ではないか
-           n.visibility !== 'specified';    // ダイレクト投稿ではないか
-  });
-
-  if (candidates.length === 0) return;
-
-  // ランダムに1つ選ぶ
-  const target = candidates[Math.floor(Math.random() * candidates.length)];
-  
-  // 絵文字選択
+  // 1. 設定シートから「キーワードと絵文字のルール」を読み込む
   const sheet = SS.getSheetByName(SHEET.REACTION);
   const rows = sheet.getDataRange().getValues();
-  // ヘッダーを除き、空行を除外して絵文字リストを作成
-  const emojis = rows.slice(1).map(r => r[0]).filter(e => e && e !== '');
-  
-  if (emojis.length === 0) return;
+  // 1行目はヘッダーなので削除し、ルールリストを作成
+  // 構造: [{ keyword: 'おはよう', reactions: ['🌅', ':ohayou:'] }, ...]
+  const reactionRules = rows.slice(1).map(row => {
+    const keyword = row[0];
+    // B列以降(row[1]~)にある空欄以外のセルを絵文字リストとする
+    const emojis = row.slice(1).filter(e => e && e !== '');
+    return { keyword: keyword, reactions: emojis };
+  }).filter(rule => rule.keyword && rule.reactions.length > 0);
 
-  const reaction = emojis[Math.floor(Math.random() * emojis.length)];
+  if (reactionRules.length === 0) return;
+
+  // 2. ホームタイムラインを取得
+  const timeline = getTimeline('home', 20);
+  
+  // 3. リアクション可能な投稿の候補を探す
+  const candidates = [];
+
+  for (const note of timeline) {
+    const noteTime = new Date(note.createdAt).getTime();
+    
+    // 基本フィルタ（時間内、Botじゃない、自分じゃない、公開範囲など）
+    if (noteTime <= thresholdTime) continue;
+    if (note.user.isBot) continue;
+    if (note.userId === config.OWN_USER_ID) continue;
+    if (note.visibility === 'specified') continue;
+    if (!note.text) continue; // テキストがない投稿（画像のみ等）はスキップ
+
+    // キーワードマッチング
+    for (const rule of reactionRules) {
+      if (note.text.includes(rule.keyword)) {
+        // マッチしたら候補に追加して、この投稿へのチェックは終了（多重反応防止）
+        candidates.push({
+          note: note,
+          reactions: rule.reactions
+        });
+        break; 
+      }
+    }
+  }
+
+  // 候補がなければ終了
+  if (candidates.length === 0) return;
+
+  // 4. 候補の中からランダムに1つの投稿を選ぶ
+  const targetCandidate = candidates[Math.floor(Math.random() * candidates.length)];
+  const targetNote = targetCandidate.note;
+  
+  // 5. その投稿に対応する絵文字リストからランダムに1つ選ぶ
+  const reaction = targetCandidate.reactions[Math.floor(Math.random() * targetCandidate.reactions.length)];
 
   try {
-    callMisskeyApi('notes/reactions/create', { noteId: target.id, reaction: reaction });
+    callMisskeyApi('notes/reactions/create', { noteId: targetNote.id, reaction: reaction });
     incrementCounter('REACTION');
+    console.log(`Reacted to "${targetNote.text.substring(0, 10)}..." with ${reaction}`);
   } catch (e) {
-    // 既にリアクション済みなどのエラーは無視、またはログ出力
     console.warn(`Reaction failed: ${e.message}`);
   }
 }
