@@ -156,25 +156,39 @@ function processReaction() {
   const limitMin = config.REACTION_RECENCY_MIN || 30;
   const thresholdTime = Date.now() - (limitMin * 60 * 1000);
 
-  const timeline = getTimeline(config.TIMELINE_TYPE || 'local', 20);
+  // 【修正】リアクション対象を「ホームタイムライン(フォロー中)」に限定
+  // 'local' にすると全ユーザーが対象になってしまうため 'home' を指定
+  const timeline = getTimeline('home', 20);
   
-  // 条件: 30分以内、Botじゃない、自分の投稿じゃない、NGワードなし
+  // 条件フィルタリング
   const candidates = timeline.filter(n => {
     const noteTime = new Date(n.createdAt).getTime();
-    return noteTime > thresholdTime && 
-           !n.user.isBot && 
-           n.userId !== config.MISSKEY_USER_ID; 
+    return noteTime > thresholdTime &&      // 直近の投稿か
+           !n.user.isBot &&                 // Botではないか
+           n.userId !== config.OWN_USER_ID && // 自分ではないか
+           n.visibility !== 'specified';    // ダイレクト投稿ではないか
   });
 
   if (candidates.length === 0) return;
 
+  // ランダムに1つ選ぶ
   const target = candidates[Math.floor(Math.random() * candidates.length)];
   
   // 絵文字選択
   const sheet = SS.getSheetByName(SHEET.REACTION);
-  const emojis = sheet.getDataRange().getValues().slice(1).map(r => r[0]).filter(Boolean);
+  const rows = sheet.getDataRange().getValues();
+  // ヘッダーを除き、空行を除外して絵文字リストを作成
+  const emojis = rows.slice(1).map(r => r[0]).filter(e => e && e !== '');
+  
+  if (emojis.length === 0) return;
+
   const reaction = emojis[Math.floor(Math.random() * emojis.length)];
 
-  callMisskeyApi('notes/reactions/create', { noteId: target.id, reaction: reaction });
-  incrementCounter('REACTION');
+  try {
+    callMisskeyApi('notes/reactions/create', { noteId: target.id, reaction: reaction });
+    incrementCounter('REACTION');
+  } catch (e) {
+    // 既にリアクション済みなどのエラーは無視、またはログ出力
+    console.warn(`Reaction failed: ${e.message}`);
+  }
 }
