@@ -62,10 +62,11 @@ function setupSpreadsheet() {
       header: ['Key', 'Value', '説明'],
       data: [
         // トークン類はここから削除しました
-        ['MISSKEY_INSTANCE', 'https://misskey.io', 'MisskeyインスタンスのURL'],
-        ['GEMINI_MODEL', 'gemini-2.0-flash-lite', '使用するGeminiモデル名'],
+        ['MISSKEY_INSTANCE', 'https://misskey.example.net', 'MisskeyインスタンスのURL'],
+        ['GEMINI_MODEL', 'gemini-2.5-flash-lite', '使用するGeminiモデル名'],
         ['TIMELINE_TYPE', 'local', '参照するTL (local, home, global)'],
-        ['POST_VISIBILITY', 'public', '投稿の公開範囲 (public, home, followers)'],
+        // 初期テストが終わるまでpublic投稿にしないことを推奨
+        ['POST_VISIBILITY', 'home', '投稿の公開範囲 (public, home, followers)'],
         ['NIGHT_START', '23', '夜間停止開始時間 (時)'],
         ['NIGHT_END', '6', '夜間停止終了時間 (時)'],
         ['GEMINI_DAILY_LIMIT', '50', '1日のGemini使用上限回数'],
