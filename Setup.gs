@@ -6,13 +6,12 @@ function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('Bot設定')
     .addItem('1. 初期セットアップ (シート作成)', 'setupSpreadsheet')
-    .addItem('2. APIキー・トークン設定', 'setSecretProperties') // 追加
+    .addItem('2. APIキー・トークン設定', 'setSecretProperties')
     .addToUi();
 }
 
 /**
  * 2. APIキーとトークンを入力ダイアログから設定する関数
- * これによりスプレッドシートに書かずにプロパティへ保存できます
  */
 function setSecretProperties() {
   const ui = SpreadsheetApp.getUi();
@@ -51,21 +50,21 @@ function setSecretProperties() {
 }
 
 /**
- * 1. スプレッドシート作成 (トークン欄を除外)
+ * 1. スプレッドシート作成
  */
 function setupSpreadsheet() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const ui = SpreadsheetApp.getUi();
+  
+  // UI関連はメニューから実行しなかった場合のエラーを防ぐためコメントアウト
+  // const ui = SpreadsheetApp.getUi();
   
   const sheets = {
     '設定': {
       header: ['Key', 'Value', '説明'],
       data: [
-        // トークン類はここから削除しました
         ['MISSKEY_INSTANCE', 'https://misskey.example.net', 'MisskeyインスタンスのURL'],
-        ['GEMINI_MODEL', 'gemini-2.5-flash-lite', '使用するGeminiモデル名'],
+        ['GEMINI_MODEL', 'gemini-2.5-flash', '使用するGeminiモデル名'],
         ['TIMELINE_TYPE', 'local', '参照するTL (local, home, global)'],
-        // 初期テストが終わるまでpublic投稿にしないことを推奨
         ['POST_VISIBILITY', 'home', '投稿の公開範囲 (public, home, followers)'],
         ['NIGHT_START', '23', '夜間停止開始時間 (時)'],
         ['NIGHT_END', '6', '夜間停止終了時間 (時)'],
@@ -86,17 +85,19 @@ function setupSpreadsheet() {
         ['AFFINITY_RANK2', '5', '好感度ランク2に必要な会話数'],
         ['AFFINITY_RANK3', '20', '好感度ランク3に必要な会話数'],
         ['ERROR_NOTIFY_EMAIL', '', 'エラー通知先メールアドレス'],
-        ['OWN_USER_ID', '', 'Bot自身のユーザーID (反応除外用)']
+        ['OWN_USER_ID', '', 'Bot自身のユーザーID (反応除外用)'],
+        // 安全のため初期値は FALSE
+        ['BOT_ACTIVE', 'FALSE', '【重要】Bot全体スイッチ（TRUEで開始 FALSEで完全停止）']
       ]
     },
-    // ... 他のシート定義は前回と同じ ...
     'キャラクタープロンプト': { header: ['System Prompt', '説明'], data: [['あなたは元気で明るいAIアシスタントです。', 'Geminiへの指示']] },
     'スケジュール投稿': { header: ['時間帯', '投稿内容1', '投稿内容2'], data: [['7', 'おはよう！', '朝だ！']] },
     'ランダム投稿': { header: ['投稿内容'], data: [['お腹すいた']] },
     '投票質問文': { header: ['質問文'], data: [['好きな色は？']] },
     'フォールバック定型文': { header: ['定型返信'], data: [['なるほど！']] },
     'イベント': { header: ['日付', 'イベント名', '投稿内容'], data: [['01/01', '元旦', 'あけおめ！']] },
-    'リアクション': { header: ['キーワード', 'リアクション候補1', 'リアクション候補2'], data: [['おはよう', '🌅', '🐔'], ['おやすみ', '💤', '🌙'], ['Misskey', '💙', '🚀'], ['いいね', '👍', '❤']] },
+    'リアクション': { header: ['キーワード', 'リアクション候補1', 'リアクション候補2'], data: 
+      [['おはよう', '🌅', '🐔'], ['おやすみ', '💤', '🌙'], ['Misskey', '💙', '🚀'], ['いいね', '👍', '❤']] },
     'ユーザー管理': { header: ['UserId', '最終会話日時', '総会話数'], data: [] },
     'ダッシュボード': { header: ['日付', '投稿数', '返信数', 'Gemini数', 'エラー数'], data: [] },
     'エラーログ': { header: ['日時', '関数名', 'エラー内容'], data: [] }
@@ -127,6 +128,4 @@ function setupSpreadsheet() {
 
   const defaultSheet = ss.getSheetByName('シート1');
   if (defaultSheet && defaultSheet.getLastRow() === 0) ss.deleteSheet(defaultSheet);
-
-  ui.alert('完了', 'シートを作成しました。\n続けてメニューの「2. APIキー・トークン設定」を実行してください。', ui.ButtonSet.OK);
 }

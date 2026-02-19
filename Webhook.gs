@@ -8,13 +8,21 @@ function doPost(e) {
   }
 
   try {
+    // 【追加】Bot全体停止スイッチの確認
+    const config = getConfig();
+    if (String(config.BOT_ACTIVE).toUpperCase() === 'FALSE') {
+      // 停止中もMisskey側にエラー判定されないよう「OK」だけは返す
+      return ContentService.createTextOutput('OK');
+    }
+
     const data = JSON.parse(e.postData.contents);
     const type = data.type;
     const body = data.body;
 
     // 基本的なバリデーション (bot自身のイベントは無視など)
-    // ※Misskeyは自分がアクションしてもhookが飛ぶ場合があるため注意
-    if (body.userId === getConfig().OWN_USER_ID) return; // ※OWN_USER_IDの設定が必要
+    if (body.userId === config.OWN_USER_ID) {
+      return ContentService.createTextOutput('OK');
+    }
 
     switch (type) {
       case 'followed':
@@ -53,7 +61,6 @@ function handleMention(body) {
 
   // 1. 相互フォロー確認
   const relation = callMisskeyApi('users/relation', { userId: userId });
-  // リストで返ってくる可能性があるので注意
   const rel = Array.isArray(relation) ? relation[0] : relation;
   
   if (!rel.isFollowing || !rel.isFollowed) return;
@@ -98,10 +105,14 @@ function handleMention(body) {
   try {
     replyText = callGemini(fullPrompt);
   } catch (e) {
-    // フォールバック定型文からランダム
     const fbSheet = SS.getSheetByName(SHEET.FALLBACK);
-    const fbs = fbSheet.getDataRange().getValues().slice(1).map(r => r[0]).filter(Boolean);
-    replyText = fbs[Math.floor(Math.random() * fbs.length)];
+    const rows = fbSheet.getDataRange().getValues();
+    const fbs = rows.slice(1).map(r => r[0]).filter(Boolean);
+    if (fbs.length > 0) {
+      replyText = fbs[Math.floor(Math.random() * fbs.length)];
+    } else {
+      replyText = "ごめんね、エラーが起きちゃったみたい...💦";
+    }
   }
 
   // 5. 返信実行
@@ -111,7 +122,7 @@ function handleMention(body) {
   props.setProperty(todayReplyCountKey, (currentTodayReplies + 1).toString());
   
   if (userRowIndex > 0) {
-    userSheet.getRange(userRowIndex, 2).setValue(new Date()); // 最終返信日時
+    userSheet.getRange(userRowIndex, 2).setValue(new Date()); 
     userSheet.getRange(userRowIndex, 3).setValue(interactionCount + 1);
   } else {
     userSheet.appendRow([userId, new Date(), 1]);

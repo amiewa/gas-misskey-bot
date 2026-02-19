@@ -2,12 +2,19 @@
 
 function mainDispatcher() {
   const config = getConfig();
+  
+  // 【追加】Bot全体停止スイッチの確認
+  // スプレッドシートが FALSE の場合はここで処理を強制終了する
+  if (String(config.BOT_ACTIVE).toUpperCase() === 'FALSE') {
+    console.log('BOT_ACTIVE is FALSE. Bot is sleeping.');
+    return; 
+  }
+
   const props = PropertiesService.getScriptProperties();
   const now = new Date();
 
   // 0時台のメンテナンス (F11)
   if (now.getHours() === 0) {
-    // 1日1回だけ実行するためのガード
     const lastMaint = props.getProperty('LAST_MAINTENANCE_DATE');
     const todayStr = getTodayStr();
     if (lastMaint !== todayStr) {
@@ -24,7 +31,6 @@ function mainDispatcher() {
     processScheduledPost();
     
     // F07: リアクション (毎時実行)
-    // 実行間隔制御が必要ならpropsで管理。今回は毎時
     processReaction();
 
     // F03: ランダム投稿 (間隔チェック)
