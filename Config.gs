@@ -27,7 +27,7 @@ function getConfig() {
   // 1. デフォルト設定
   const config = {
     MISSKEY_INSTANCE: 'https://misskey.example.net',
-    GEMINI_MODEL: 'gemini-2.0-flash-lite',
+    GEMINI_MODEL: 'gemini-2.5-flash-lite',
     NIGHT_START: 23,
     NIGHT_END: 5,
     GEMINI_DAILY_LIMIT: 50
