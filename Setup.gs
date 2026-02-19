@@ -62,8 +62,8 @@ function setupSpreadsheet() {
       header: ['Key', 'Value', '説明'],
       data: [
         // トークン類はここから削除しました
-        ['MISSKEY_INSTANCE', 'https://misskey.example.net', 'MisskeyインスタンスのURL'],
-        ['GEMINI_MODEL', 'gemini-2.5-flash-lite', '使用するGeminiモデル名'],
+        ['MISSKEY_INSTANCE', 'https://misskey.io', 'MisskeyインスタンスのURL'],
+        ['GEMINI_MODEL', 'gemini-2.0-flash-lite', '使用するGeminiモデル名'],
         ['TIMELINE_TYPE', 'local', '参照するTL (local, home, global)'],
         ['POST_VISIBILITY', 'public', '投稿の公開範囲 (public, home, followers)'],
         ['NIGHT_START', '23', '夜間停止開始時間 (時)'],
@@ -95,7 +95,7 @@ function setupSpreadsheet() {
     '投票質問文': { header: ['質問文'], data: [['好きな色は？']] },
     'フォールバック定型文': { header: ['定型返信'], data: [['なるほど！']] },
     'イベント': { header: ['日付', 'イベント名', '投稿内容'], data: [['01/01', '元旦', 'あけおめ！']] },
-    'リアクション': { header: ['絵文字'], data: [['👍']] },
+    'リアクション': { header: ['絵文字'], data: [['🩵']] },
     'ユーザー管理': { header: ['UserId', '最終会話日時', '総会話数'], data: [] },
     'ダッシュボード': { header: ['日付', '投稿数', '返信数', 'Gemini数', 'エラー数'], data: [] },
     'エラーログ': { header: ['日時', '関数名', 'エラー内容'], data: [] }
