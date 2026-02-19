@@ -59,6 +59,7 @@ function runDailyMaintenance() {
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
   const yStr = Utilities.formatDate(yesterday, 'JST', 'yyyy-MM-dd');
+  const todayStr = getTodayStr(); // 今日の日付
   
   const props = PropertiesService.getScriptProperties();
   
@@ -69,11 +70,33 @@ function runDailyMaintenance() {
   types.forEach(type => {
     const key = `COUNT_${type}_${yStr}`;
     row.push(props.getProperty(key) || 0);
-    props.deleteProperty(key); // プロパティ削除して掃除
   });
   
   sheet.appendRow(row);
   
-  // ユーザー管理シートの「本日の返信回数」リセットなどはここで行うと良いが、
-  // 今回の設計では日付を見て判定するため不要。
+  // ▼▼ ここから追加・修正（一括お掃除機能） ▼▼
+  // プロパティを全件チェックし、今日以降のデータや、消してはいけない重要なキー以外を削除する
+  const allProps = props.getProperties();
+  const keysToKeep = [
+    'MISSKEY_TOKEN', 
+    'GEMINI_API_KEY', 
+    'LAST_MAINTENANCE_DATE', 
+    'LAST_SCHEDULED_POST_CONTENT',
+    'LAST_ERROR_NOTIFY',
+    'LAST_RUN_RANDOM_POST',
+    'LAST_RUN_GEMINI_POST',
+    'LAST_RUN_POLL_POST'
+  ];
+
+  for (const key in allProps) {
+    // 重要なキーはスキップ
+    if (keysToKeep.includes(key)) continue;
+    
+    // 今日の日付が含まれているカウンタはスキップ（今日使っているため）
+    if (key.includes(todayStr)) continue;
+    
+    // それ以外（昨日のカウンタや、過去のメンション制限カウンタなど）は削除
+    props.deleteProperty(key);
+  }
+  // ▲▲ ここまで ▲▲
 }
