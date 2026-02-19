@@ -1,43 +1,43 @@
- GeminiAPI.gs
+// GeminiAPI.gs
 
 function callGemini(promptText, history = []) {
   const config = getConfig();
   
-   日次制限チェック
+  // 日次制限チェック
   const props = PropertiesService.getScriptProperties();
   const todayKey = `COUNT_GEMINI_${getTodayStr()}`;
-  const currentUsage = parseInt(props.getProperty(todayKey)  '0');
+  const currentUsage = parseInt(props.getProperty(todayKey) || '0');
   
-  if (currentUsage = config.GEMINI_DAILY_LIMIT) {
+  if (currentUsage >= config.GEMINI_DAILY_LIMIT) {
     throw new Error('Gemini Daily Limit Exceeded');
   }
 
-  const url = `httpsgenerativelanguage.googleapis.comv1betamodels${config.GEMINI_MODEL}generateContentkey=${config.GEMINI_API_KEY}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${config.GEMINI_MODEL}:generateContent?key=${config.GEMINI_API_KEY}`;
   
   const contents = [];
-   会話履歴があれば追加（system instructionが使えないLiteモデル向けの工夫）
-  if (history.length  0) {
+  // 会話履歴があれば追加
+  if (history.length > 0) {
     contents.push(...history);
   }
   
   contents.push({
-    role user,
-    parts [{ text promptText }]
+    role: "user",
+    parts: [{ text: promptText }]
   });
 
   const payload = {
-    contents contents,
-    generationConfig {
-      maxOutputTokens 200,
-      temperature 0.7
+    contents: contents,
+    generationConfig: {
+      maxOutputTokens: 200,
+      temperature: 0.7
     }
   };
 
   const options = {
-    method 'post',
-    contentType 'applicationjson',
-    payload JSON.stringify(payload),
-    muteHttpExceptions true
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
   };
 
   try {
