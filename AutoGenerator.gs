@@ -59,13 +59,29 @@ function showGenerateDialog() {
 }
 
 /**
- * GeminiからJSON形式で結果を受け取る共通関数
+ * GeminiからJSON形式で結果を受け取る共通関数（エラー対策の強化版）
  */
 function fetchGeneratedJson(promptText) {
-  const resText = callGemini(promptText);
-  // Markdownのコードブロック記法(```json ... ```)を取り除いてパース
-  const cleaned = resText.replace(/```json/gi, '').replace(/```/g, '').trim();
-  return JSON.parse(cleaned);
+  // 1. AIへの指示に「改行禁止」「記号禁止」のルールを強制的に追加する
+  const strictPrompt = promptText + '\n\n【絶対厳守】出力するJSONのデータ内（セリフの中など）には、絶対に「改行（エンター）」や「ダブルクォーテーション(")」を含めないでください。セリフは必ず1行のテキストとして出力してください。';
+  
+  // API通信
+  let resText = callGemini(strictPrompt);
+  
+  // 2. 余計な文字（Markdown表記など）を消す
+  let cleaned = resText.replace(/```json/gi, '').replace(/```/g, '').trim();
+  
+  // 3. AIがうっかり出力してしまった「生の改行文字」をプログラム側で強制的にすべて消去する
+  cleaned = cleaned.replace(/\r?\n/g, '');
+  
+  // 4. 解析（パース）
+  try {
+    return JSON.parse(cleaned);
+  } catch (e) {
+    // どんな文字列が返ってきて失敗したのかログに残す
+    console.error('【AI返答エラー】', cleaned);
+    throw new Error('AIが想定外の文章を生成しました。もう一度だけ実行してみてください。\n詳細: ' + e.message);
+  }
 }
 
 // ---------------------------------------------------
