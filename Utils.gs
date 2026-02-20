@@ -4,11 +4,16 @@
 function logError(funcName, error) {
   const config = getConfig();
   const now = new Date();
-  
+
   // エラーログシートへの記録
   const sheet = SS.getSheetByName(SHEET.ERROR);
   sheet.appendRow([now, funcName, error.toString()]);
   console.error(`[${funcName}] ${error}`);
+
+  // 通知のON/OFF判定
+  if (String(config.ENABLE_ERROR_NOTIFY).toUpperCase() !== 'TRUE') {
+    return; // 通知OFFの場合はここで終了
+  }
 
   // 通知抑制チェック
   const props = PropertiesService.getScriptProperties();

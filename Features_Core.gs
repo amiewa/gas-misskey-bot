@@ -10,18 +10,19 @@ function processScheduledPost() {
   
   const sheet = SS.getSheetByName(SHEET.SCHEDULE);
   const data = sheet.getDataRange().getValues();
-  
+
   // 現在の時間帯にマッチする投稿候補を探す
   let candidates = [];
   // 1行目はヘッダ想定
   for (let i = 1; i < data.length; i++) {
+    // 空行はスキップ（時間帯と投稿内容が必須）
+    if (!data[i][0] || !data[i][2]) continue;
+
     // 時間帯指定（例: "7" や "7,8" など。簡易的にカンマ区切り対応）
     const hours = data[i][0].toString().split(',').map(h => parseInt(h.trim()));
     if (hours.includes(currentHour)) {
-      // B列以降が候補
-      for (let j = 1; j < data[i].length; j++) {
-        if (data[i][j]) candidates.push(data[i][j]);
-      }
+      // C列(インデックス2)が投稿内容
+      candidates.push(data[i][2]);
     }
   }
 
@@ -35,10 +36,8 @@ function processScheduledPost() {
     let eventCandidates = [];
     
     for (let i = 1; i < events.length; i++) {
-      if (events[i][0] === todayStr) { // 日付一致
-         for (let j = 2; j < events[i].length; j++) {
-            if (events[i][j]) eventCandidates.push(events[i][j]);
-         }
+      if (events[i][0] === todayStr && events[i][2]) { // 日付一致かつ投稿内容あり
+        eventCandidates.push(events[i][2]);
       }
     }
     
@@ -51,7 +50,6 @@ function processScheduledPost() {
   // 重複回避ロジック（直近の投稿履歴と比較）
   const props = PropertiesService.getScriptProperties();
   const lastPost = props.getProperty('LAST_SCHEDULED_POST_CONTENT');
-  
   let text = candidates[Math.floor(Math.random() * candidates.length)];
   
   // 候補が複数ある場合のみ重複再抽選
