@@ -7,6 +7,8 @@ function onOpen() {
     .createMenu('Bot設定')
     .addItem('1. 初期セットアップ (シート作成)', 'setupSpreadsheet')
     .addItem('2. APIキー・トークン設定', 'setSecretProperties')
+    .addSeparator() // 区切り線
+    .addItem('3. 台詞の自動生成 (Gemini)', 'showGenerateDialog')
     .addToUi();
 }
 
@@ -55,6 +57,14 @@ function setSecretProperties() {
 function setupSpreadsheet() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   
+  // ▼ 新しいキャラクタープロンプトを変数として定義 ▼
+  const charPromptText = `あなたは少女「みあ」マイペース,無頓着,好奇心はあるが浅い。敬語・句点・絵文字不使用。語尾は柔らかくゆるい。
+口調例:
+喜「当たり～ 今日の運ここで使ったっぽい～」
+楽「ん～まーやってみよ ダメならやめればいっか」
+哀「心の中が炭酸～しゅわってしてる～」
+怒「それはナシ～ 説明？うわしんど」`;
+  
   const sheets = {
     '設定': {
       header: ['Key', 'Value', '説明'],
@@ -69,8 +79,8 @@ function setupSpreadsheet() {
         ['ENABLE_SCHEDULE_POST', 'TRUE', 'スケジュール投稿を有効にする'],
         ['ENABLE_RANDOM_POST', 'TRUE', 'ランダム投稿を有効にする'],
         ['ENABLE_GEMINI_POST', 'TRUE', 'Gemini自動投稿を有効にする'],
-        ['ENABLE_POLL_POST', 'FALSE', '投票投稿を有効にする'],
-        ['ENABLE_REACTION', 'FALSE', '自動リアクションを有効にする'],
+        ['ENABLE_POLL_POST', 'FALSE', '投票投稿を有効にする'], // 初期値FALSEに変更
+        ['ENABLE_REACTION', 'FALSE', '自動リアクションを有効にする'], // 初期値FALSEに変更
         ['ENABLE_MENTION_REPLY', 'TRUE', 'メンション返信を有効にする'],
         ['ENABLE_FOLLOWBACK', 'TRUE', '自動フォローバックを有効にする'],
         ['RANDOM_POST_INTERVAL_H', '4', 'ランダム投稿の間隔(時間)'],
@@ -87,13 +97,13 @@ function setupSpreadsheet() {
         ['BOT_ACTIVE', 'FALSE', '【重要】Bot全体スイッチ（TRUEで開始 FALSEで完全停止）']
       ]
     },
-    'キャラクタープロンプト': { header: ['System Prompt', '説明'], data: [['あなたは', 'Geminiへの指示']] },
-    // ▼ スケジュール投稿を縦長のフォーマットに変更 ▼
-    'スケジュール投稿': { header: ['時間帯', 'メモ(説明)', '投稿内容'], data: [['7', '朝の挨拶', 'おはよう！'], ['7', '朝の挨拶2', '朝だ！'], ['12', 'お昼', 'お昼ごはんにしよう！']] },
-    'ランダム投稿': { header: ['投稿内容'], data: [['お腹すいた']] },
+    // ▼ キャラクタープロンプトの初期値を変更 ▼
+    'キャラクタープロンプト': { header: ['System Prompt', '説明'], data: [[charPromptText, 'Geminiへの指示']] },
+    'スケジュール投稿': { header: ['時間帯', 'メモ(説明)', '投稿内容'], data: [['7', '朝の挨拶', 'おはよ～'], ['7', '朝の挨拶2', '朝だ～'], ['12', 'お昼', 'お昼にしよ～']] },
+    'ランダム投稿': { header: ['投稿内容'], data: [['お腹すいた～']] },
     '投票質問文': { header: ['質問文'], data: [['好きな色は？']] },
-    'フォールバック定型文': { header: ['定型返信'], data: [['なるほど！']] },
-    'イベント': { header: ['日付', 'イベント名', '投稿内容'], data: [['01/01', '元旦', 'あけおめ！']] },
+    'フォールバック定型文': { header: ['定型返信'], data: [['なるほど～']] },
+    'イベント': { header: ['日付', 'イベント名', '投稿内容'], data: [['01/01', '元旦', 'あけおめ～']] },
     'リアクション': { header: ['キーワード', 'リアクション候補1', 'リアクション候補2'], data: [['おはよう', '🌅', '🐔'], ['おやすみ', '💤', '🌙'], ['Misskey', '💙', '🚀'], ['いいね', '👍', '❤']] },
     'ユーザー管理': { header: ['UserId', '最終会話日時', '総会話数'], data: [] },
     'ダッシュボード': { header: ['日付', '投稿数', '返信数', 'Gemini数', 'エラー数'], data: [] },
