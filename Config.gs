@@ -26,8 +26,8 @@ function getConfig() {
 
   // 1. デフォルト設定
   const config = {
-    MISSKEY_INSTANCE: 'https://misskey.example.net',
-    GEMINI_MODEL: 'gemini-2.5-flash-lite',
+    MISSKEY_INSTANCE: 'https://misskey.io',
+    GEMINI_MODEL: 'gemini-2.0-flash-lite',
     NIGHT_START: 23,
     NIGHT_END: 5,
     GEMINI_DAILY_LIMIT: 50
@@ -62,5 +62,5 @@ function getConfig() {
 
 function getSystemPrompt() {
   const sheet = SS.getSheetByName(SHEET.PROMPT);
-  return sheet ? sheet.getRange('A1').getValue() : '';
+  return sheet ? sheet.getRange('A2').getValue() : '';
 }
