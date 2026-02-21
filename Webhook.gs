@@ -46,7 +46,7 @@ function doPost(e) {
 // F01: フォローバック
 function handleFollowed(body) {
   if (!getConfig().ENABLE_FOLLOWBACK) return;
-  callMisskeyApi('following/create', { userId: body.userId });
+  callMisskeyApi('following/create', { userId: body.user.id }); // ←ここを修正
   incrementCounter('FOLLOWBACK');
 }
 
