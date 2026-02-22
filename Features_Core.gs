@@ -118,24 +118,58 @@ function processPollPost() {
   const timeline = getTimeline(config.TIMELINE_TYPE || 'local', 20);
   const textBlob = timeline.map(n => n.text).join(" ");
   
-  // 簡易的な抽出ロジック: 3文字以上のカタカナまたは漢字の連続を抽出
+  // 簡易的な抽出ロジック: 3文字以上のカタカナまたは漢字の連続を抽出（以前のロジックに戻しました）
   const matches = textBlob.match(/[ァ-ヶー]{3,}|[一-龠]{2,}/g) || [];
   
-  // ユニーク化してランダムに4つ選ぶ
+  // ユニーク化
   const uniqueWords = [...new Set(matches)];
   if (uniqueWords.length < 4) return; // 候補不足
+
+  // 質問文(A列)と接頭辞(B列)の抽出を安全に実行
+  const sheet = SS.getSheetByName(SHEET.POLL);
+  const dataRange = sheet.getDataRange();
+  const pollData = dataRange.getValues();
+  
+  if (pollData.length <= 1) return; // データなし
+  
+  const questions = [];
+  const prefixes = [];
+  
+  // 1行目はヘッダなので 2行目(インデックス1) からループ
+  for (let i = 1; i < pollData.length; i++) {
+    const row = pollData[i];
+    // A列 (質問)
+    if (row[0] && row[0].toString().trim() !== "") {
+      questions.push(row[0].toString().trim());
+    }
+    // B列 (接頭辞) - 列が存在するかどうかも加味
+    if (row.length > 1 && row[1] && row[1].toString().trim() !== "") {
+      prefixes.push(row[1].toString().trim());
+    }
+  }
+
+  console.log(`[processPollPost] Prefixes found: ${prefixes.length}`);
+  console.log(`[processPollPost] Sample prefix: ${prefixes.length > 0 ? prefixes[0] : 'None'}`);
+
+  if (questions.length === 0) return;
+  const question = questions[Math.floor(Math.random() * questions.length)];
 
   const choices = [];
   while(choices.length < 4) {
     const idx = Math.floor(Math.random() * uniqueWords.length);
-    choices.push(uniqueWords[idx]);
+    const word = uniqueWords[idx];
     uniqueWords.splice(idx, 1);
-  }
 
-  // 質問文の選択
-  const sheet = SS.getSheetByName(SHEET.POLL);
-  const questions = sheet.getDataRange().getValues().slice(1).map(r => r[0]).filter(Boolean);
-  const question = questions[Math.floor(Math.random() * questions.length)];
+    // 接頭辞(Prefix)の結合
+    let finalChoice = word;
+    if (prefixes.length > 0) {
+      const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+      finalChoice = prefix + word;
+    }
+    
+    // Misskeyの仕様上、選択肢が長すぎる場合は切り詰める（通常は50文字制限など）
+    choices.push(finalChoice.substring(0, 50));
+  }
 
   const poll = {
     choices: choices,

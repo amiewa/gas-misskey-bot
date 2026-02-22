@@ -56,6 +56,19 @@ function handleMention(body) {
   if (!config.ENABLE_MENTION_REPLY) return;
 
   const noteId = body.note.id;
+  console.log(`[handleMention] Start processing noteId: ${noteId}`);
+
+  // 0a. 重複処理の防止 第1防衛: PropertiesService
+  const scriptProps = PropertiesService.getScriptProperties();
+  const propKey = `PROCESSED_MENTION_${noteId}`;
+  
+  if (scriptProps.getProperty(propKey)) {
+    console.log(`[handleMention] PropertiesService hit: ${noteId}. Skip.`);
+    return; 
+  }
+  scriptProps.setProperty(propKey, 'true');
+  console.log(`[handleMention] PropertiesService set: ${noteId}`);
+
   const userId = body.note.userId;
   const text = body.note.text;
 
@@ -84,8 +97,7 @@ function handleMention(body) {
   // 当日の返信制限チェック
   const today = getTodayStr();
   const todayReplyCountKey = `REPLY_COUNT_${userId}_${today}`;
-  const props = PropertiesService.getScriptProperties();
-  const currentTodayReplies = parseInt(props.getProperty(todayReplyCountKey) || '0');
+  const currentTodayReplies = parseInt(scriptProps.getProperty(todayReplyCountKey) || '0');
 
   if (currentTodayReplies >= config.MENTION_DAILY_LIMIT) return;
 
@@ -115,11 +127,24 @@ function handleMention(body) {
     }
   }
 
+  // 0b. 重複処理の防止 第2防衛: Misskey APIで既にBotが返信済みか確認（フェイルセーフ）
+  try {
+    const replies = callMisskeyApi('notes/replies', { noteId: noteId, limit: 100 });
+    const alreadyReplied = replies.some(r => r.userId === config.OWN_USER_ID);
+    if (alreadyReplied) {
+      console.log(`[handleMention] Misskey API check: already replied to ${noteId}. Skip.`);
+      return;
+    }
+  } catch (checkErr) {
+    console.warn(`[handleMention] Reply check failed (proceeding): ${checkErr.message}`);
+  }
+
   // 5. 返信実行
+  console.log(`[handleMention] Replying to ${noteId}`);
   replyNote(noteId, replyText);
 
   // 6. データ更新
-  props.setProperty(todayReplyCountKey, (currentTodayReplies + 1).toString());
+  scriptProps.setProperty(todayReplyCountKey, (currentTodayReplies + 1).toString());
   
   if (userRowIndex > 0) {
     userSheet.getRange(userRowIndex, 2).setValue(new Date()); 

@@ -1,0 +1,16 @@
+implementation_plan.md
+task.md
+walkthrough.md
+.env
+*.txt
+#google関連ファイル
+*.gsheet
+.clasp.json
+.claspignore
+appsscript.json
+
+.clasp.json
+.claspignore
+appsscript.json
+node_modules/
+
